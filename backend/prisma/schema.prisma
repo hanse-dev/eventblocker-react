@@ -1,3 +1,6 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,51 +10,42 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Define your models here
-model Example {
+model User {
   id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   // "USER" or "ADMIN"
+  events    Event[]  @relation("CreatedEvents")
+  bookings  Booking[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  title     String
-  content   String?
-}
-
-model User {
-  id        String    @id @default(uuid())
-  email     String    @unique
-  name      String
-  password  String
-  role      String    @default("USER") // "USER" or "ADMIN"
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  bookings  Booking[]
-  events    Event[]   // Events created by this user
 }
 
 model Event {
-  id          String    @id @default(uuid())
+  id          Int      @id @default(autoincrement())
   title       String
   description String
   date        DateTime
   location    String
   capacity    Int
   price       Float
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  createdBy   User      @relation(fields: [userId], references: [id])
-  userId      String
+  createdBy   User     @relation("CreatedEvents", fields: [userId], references: [id])
+  userId      Int
   bookings    Booking[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Booking {
-  id        String   @id @default(uuid())
+  id        Int      @id @default(autoincrement())
   user      User     @relation(fields: [userId], references: [id])
-  userId    String
+  userId    Int
   event     Event    @relation(fields: [eventId], references: [id])
-  eventId   String
-  status    String   @default("PENDING") // "PENDING", "CONFIRMED", or "CANCELLED"
+  eventId   Int
+  status    String   // "PENDING", "CONFIRMED", "CANCELLED"
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([userId, eventId]) // Prevent duplicate bookings
+  @@unique([userId, eventId])
 }

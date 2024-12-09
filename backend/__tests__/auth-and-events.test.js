@@ -1,14 +1,21 @@
 const request = require('supertest');
 const { PrismaClient } = require('@prisma/client');
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../test.env') });
+
 const app = require('../server');
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL
+    }
+  }
+});
 
 describe('Authentication and Events API', () => {
   let adminToken;
   let userToken;
   let eventId;
-  let adminUser;
-  let regularUser;
 
   // Clean up the database before tests
   beforeAll(async () => {
@@ -36,8 +43,9 @@ describe('Authentication and Events API', () => {
         });
 
       expect(res.statusCode).toBe(201);
-      expect(res.body).toHaveProperty('role', 'ADMIN');
-      adminUser = res.body;
+      expect(res.body.user).toHaveProperty('role', 'ADMIN');
+      expect(res.body).toHaveProperty('token');
+      adminToken = res.body.token;
     });
 
     test('should not create second admin', async () => {
@@ -64,7 +72,6 @@ describe('Authentication and Events API', () => {
       expect(res.statusCode).toBe(201);
       expect(res.body.user).toHaveProperty('role', 'USER');
       expect(res.body).toHaveProperty('token');
-      regularUser = res.body.user;
       userToken = res.body.token;
     });
 

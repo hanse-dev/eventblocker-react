@@ -11,90 +11,118 @@ if (!process.env.JWT_SECRET) {
   throw new Error('JWT_SECRET environment variable is not set');
 }
 
-// Register new user
-router.post('/register', async (req, res) => {
+// Create first admin user
+router.post('/create-admin', async (req, res) => {
   try {
-    const { email, password, name } = req.body;
-
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email }
+    // Check if admin already exists
+    const existingAdmin = await prisma.user.findFirst({
+      where: { role: 'ADMIN' }
     });
 
-    if (existingUser) {
-      return res.status(400).json({ error: 'User already exists' });
+    if (existingAdmin) {
+      return res.status(400).json({ message: 'Admin user already exists' });
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const { email, password, name } = req.body;
+    const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Create user
     const user = await prisma.user.create({
       data: {
         email,
         password: hashedPassword,
         name,
-        role: 'USER' // Default role is USER
-      },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true
+        role: 'ADMIN'
       }
     });
 
-    // Generate token
     const token = jwt.sign(
-      { userId: user.id },
+      { userId: user.id, role: user.role },
       process.env.JWT_SECRET,
-      { expiresIn: '24h' }
+      { expiresIn: '1h' }
     );
 
+    // Remove password from response
+    const { password: _, ...userWithoutPassword } = user;
+
     res.status(201).json({
-      user,
+      user: userWithoutPassword,
       token
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Create admin error:', error);
+    res.status(500).json({ message: 'Error creating admin user' });
   }
 });
 
-// Login user
+// Register new user
+router.post('/register', async (req, res) => {
+  try {
+    const { email, password, name } = req.body;
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    const user = await prisma.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        name,
+        role: 'USER'
+      }
+    });
+
+    const token = jwt.sign(
+      { userId: user.id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    // Remove password from response
+    const { password: _, ...userWithoutPassword } = user;
+
+    res.status(201).json({
+      user: userWithoutPassword,
+      token
+    });
+  } catch (error) {
+    console.error('Register error:', error);
+    res.status(500).json({ message: 'Error registering user' });
+  }
+});
+
+// Login
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Find user
     const user = await prisma.user.findUnique({
       where: { email }
     });
 
     if (!user) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Check password
-    const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+    const isValidPassword = await bcrypt.compare(password, user.password);
+
+    if (!isValidPassword) {
+      return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Generate token
     const token = jwt.sign(
-      { userId: user.id },
+      { userId: user.id, role: user.role },
       process.env.JWT_SECRET,
-      { expiresIn: '24h' }
+      { expiresIn: '1h' }
     );
 
-    // Return user data without password
+    // Remove password from response
     const { password: _, ...userWithoutPassword } = user;
-    res.json({
+
+    res.status(200).json({
       user: userWithoutPassword,
       token
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Login error:', error);
+    res.status(500).json({ message: 'Error logging in' });
   }
 });
 
@@ -103,45 +131,6 @@ router.get('/me', authenticateToken, async (req, res) => {
   try {
     const { password: _, ...userWithoutPassword } = req.user;
     res.json(userWithoutPassword);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Create first admin (development only)
-router.post('/create-admin', async (req, res) => {
-  try {
-    const { email, password, name } = req.body;
-
-    // Check if any admin exists
-    const adminCount = await prisma.user.count({
-      where: { role: 'ADMIN' }
-    });
-
-    if (adminCount > 0) {
-      return res.status(400).json({ error: 'Admin already exists' });
-    }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create admin user
-    const admin = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        name,
-        role: 'ADMIN'
-      },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true
-      }
-    });
-
-    res.status(201).json(admin);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
