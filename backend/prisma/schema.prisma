@@ -15,3 +15,43 @@ model Example {
   title     String
   content   String?
 }
+
+model User {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  name      String
+  password  String
+  role      String    @default("USER") // "USER" or "ADMIN"
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  bookings  Booking[]
+  events    Event[]   // Events created by this user
+}
+
+model Event {
+  id          String    @id @default(uuid())
+  title       String
+  description String
+  date        DateTime
+  location    String
+  capacity    Int
+  price       Float
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdBy   User      @relation(fields: [userId], references: [id])
+  userId      String
+  bookings    Booking[]
+}
+
+model Booking {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  event     Event    @relation(fields: [eventId], references: [id])
+  eventId   String
+  status    String   @default("PENDING") // "PENDING", "CONFIRMED", or "CANCELLED"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, eventId]) // Prevent duplicate bookings
+}

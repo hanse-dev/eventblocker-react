@@ -1,5 +1,6 @@
 module.exports = {
   testEnvironment: 'node',
+  setupFilesAfterEnv: ['./jest.setup.js'],
   testMatch: ['**/__tests__/**/*.test.js'],
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+  verbose: true
 };
