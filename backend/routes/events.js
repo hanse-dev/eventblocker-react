@@ -34,6 +34,16 @@ const isAdmin = (req, res, next) => {
 router.post('/', verifyToken, isAdmin, async (req, res) => {
   try {
     const { title, description, date, location, capacity, price } = req.body;
+
+    // Verify user exists
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.userId }
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
     const event = await prisma.event.create({
       data: {
         title,
@@ -42,8 +52,15 @@ router.post('/', verifyToken, isAdmin, async (req, res) => {
         location,
         capacity: parseInt(capacity),
         price: parseFloat(price),
+        userId: user.id
+      },
+      include: {
         createdBy: {
-          connect: { id: req.user.userId }
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
         }
       }
     });
@@ -78,8 +95,13 @@ router.get('/', async (req, res) => {
 // Get single event
 router.get('/:id', async (req, res) => {
   try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ message: 'Invalid event ID' });
+    }
+
     const event = await prisma.event.findUnique({
-      where: { id: parseInt(req.params.id) },
+      where: { id },
       include: {
         createdBy: {
           select: {
@@ -105,9 +127,14 @@ router.get('/:id', async (req, res) => {
 // Update event (admin only)
 router.put('/:id', verifyToken, isAdmin, async (req, res) => {
   try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ message: 'Invalid event ID' });
+    }
+
     const { title, description, date, location, capacity, price } = req.body;
     const event = await prisma.event.update({
-      where: { id: parseInt(req.params.id) },
+      where: { id },
       data: {
         title,
         description,
@@ -115,11 +142,23 @@ router.put('/:id', verifyToken, isAdmin, async (req, res) => {
         location,
         capacity: capacity ? parseInt(capacity) : undefined,
         price: price ? parseFloat(price) : undefined
+      },
+      include: {
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
       }
     });
     res.json(event);
   } catch (error) {
     console.error('Update event error:', error);
+    if (error.code === 'P2025') {
+      return res.status(404).json({ message: 'Event not found' });
+    }
     res.status(500).json({ message: 'Error updating event' });
   }
 });
@@ -127,12 +166,20 @@ router.put('/:id', verifyToken, isAdmin, async (req, res) => {
 // Delete event (admin only)
 router.delete('/:id', verifyToken, isAdmin, async (req, res) => {
   try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ message: 'Invalid event ID' });
+    }
+
     await prisma.event.delete({
-      where: { id: parseInt(req.params.id) }
+      where: { id }
     });
     res.status(204).send();
   } catch (error) {
     console.error('Delete event error:', error);
+    if (error.code === 'P2025') {
+      return res.status(404).json({ message: 'Event not found' });
+    }
     res.status(500).json({ message: 'Error deleting event' });
   }
 });

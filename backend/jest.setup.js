@@ -10,24 +10,30 @@ const prisma = new PrismaClient({
   }
 });
 
+// Clean up database before all tests
 beforeAll(async () => {
-  // Reset database before all tests
-  await prisma.booking.deleteMany();
-  await prisma.event.deleteMany();
-  await prisma.user.deleteMany();
+  await prisma.$transaction([
+    prisma.booking.deleteMany(),
+    prisma.event.deleteMany(),
+    prisma.user.deleteMany()
+  ]);
 });
 
+// Clean up database before each test
 beforeEach(async () => {
-  // Clear the database before each test
-  await prisma.booking.deleteMany();
-  await prisma.event.deleteMany();
-  await prisma.user.deleteMany();
+  await prisma.$transaction([
+    prisma.booking.deleteMany(),
+    prisma.event.deleteMany(),
+    prisma.user.deleteMany()
+  ]);
 });
 
+// Clean up and disconnect after all tests
 afterAll(async () => {
-  // Clean up and disconnect after all tests
-  await prisma.booking.deleteMany();
-  await prisma.event.deleteMany();
-  await prisma.user.deleteMany();
+  await prisma.$transaction([
+    prisma.booking.deleteMany(),
+    prisma.event.deleteMany(),
+    prisma.user.deleteMany()
+  ]);
   await prisma.$disconnect();
 });
