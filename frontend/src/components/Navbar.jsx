@@ -1,87 +1,82 @@
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 export default function Navbar() {
-  const [user, setUser] = useState(null);
+  const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
+    // Check authentication status whenever component mounts or localStorage changes
+    const checkAuth = () => {
+      const token = localStorage.getItem('token');
+      const storedUser = localStorage.getItem('user');
+      if (token && storedUser) {
+        // setUser(JSON.parse(storedUser));
+      } else {
+        // setUser(null);
+      }
+    };
+
+    checkAuth();
+
+    // Add event listener for storage changes
+    window.addEventListener('storage', checkAuth);
+    
+    return () => {
+      window.removeEventListener('storage', checkAuth);
+    };
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
-    navigate('/login');
+    logout();
+    navigate('/');
   };
 
   return (
-    <nav className="bg-white shadow-lg">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="flex justify-between h-16">
-          <div className="flex">
-            <div className="flex-shrink-0 flex items-center">
-              <Link to="/" className="text-xl font-bold text-indigo-600">
-                Event Booking
-              </Link>
-            </div>
-            <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-              <Link
-                to="/events"
-                className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900"
-              >
-                Events
-              </Link>
-              {user && (
-                <Link
-                  to="/bookings"
-                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900"
-                >
-                  My Bookings
-                </Link>
-              )}
+    <nav className="bg-gray-800 p-4">
+      <div className="container mx-auto flex justify-between items-center">
+        <div className="flex space-x-4">
+          <Link to="/" className="text-white hover:text-gray-300">
+            {t('Home')}
+          </Link>
+          <Link to="/events" className="text-white hover:text-gray-300">
+            {t('Events')}
+          </Link>
+          {isAuthenticated && (
+            <Link to="/my-events" className="text-white hover:text-gray-300">
+              {t('My Events')}
+            </Link>
+          )}
+        </div>
+        <div className="flex space-x-4">
+          {isAuthenticated ? (
+            <>
               {user?.role === 'ADMIN' && (
-                <Link
-                  to="/admin"
-                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900"
-                >
-                  Admin
+                <Link to="/admin" className="text-white hover:text-gray-300">
+                  {t('Admin Dashboard')}
                 </Link>
               )}
-            </div>
-          </div>
-          <div className="hidden sm:ml-6 sm:flex sm:items-center">
-            {user ? (
-              <div className="flex items-center space-x-4">
-                <span className="text-sm text-gray-700">Welcome, {user.name}</span>
-                <button
-                  onClick={handleLogout}
-                  className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
-                >
-                  Logout
-                </button>
-              </div>
-            ) : (
-              <div className="space-x-4">
-                <Link
-                  to="/login"
-                  className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
-                >
-                  Login
-                </Link>
-                <Link
-                  to="/register"
-                  className="text-sm font-medium text-gray-700 hover:text-gray-500"
-                >
-                  Register
-                </Link>
-              </div>
-            )}
-          </div>
+              <span className="text-gray-300">{t('Welcome,')} {user.name}</span>
+              <button
+                onClick={handleLogout}
+                className="text-white hover:text-gray-300"
+              >
+                {t('Logout')}
+              </button>
+            </>
+          ) : (
+            <>
+              <Link to="/login" className="text-white hover:text-gray-300">
+                {t('Login')}
+              </Link>
+              <Link to="/register" className="text-white hover:text-gray-300">
+                {t('Register')}
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </nav>

@@ -1,15 +1,17 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+const API_URL = 'http://localhost:3000';
+
 export default function Register() {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
-    confirmPassword: '',
+    confirmPassword: ''
   });
   const [error, setError] = useState('');
-  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -29,7 +31,7 @@ export default function Register() {
     }
 
     try {
-      const response = await fetch('http://localhost:3000/api/auth/register', {
+      const response = await fetch(`${API_URL}/api/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -37,14 +39,14 @@ export default function Register() {
         body: JSON.stringify({
           name: formData.name,
           email: formData.email,
-          password: formData.password,
+          password: formData.password
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Registration failed');
+        throw new Error(data.message || 'Registration failed');
       }
 
       navigate('/login');
@@ -54,18 +56,18 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+    <div className="min-h-screen bg-gray-100 flex flex-col justify-center py-6 sm:py-12">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md px-2">
+        <h2 className="text-2xl sm:text-3xl font-bold text-center text-gray-900">
           Create your account
         </h2>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          <form className="space-y-6" onSubmit={handleSubmit}>
+      <div className="mt-4 sm:mt-8 sm:mx-auto sm:w-full sm:max-w-md px-2">
+        <div className="bg-white py-6 sm:py-8 px-3 sm:px-6 shadow rounded-lg">
+          <form className="space-y-4 sm:space-y-6" onSubmit={handleSubmit}>
             {error && (
-              <div className="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded">
+              <div className="bg-red-50 border border-red-400 text-red-700 px-3 py-2 rounded">
                 {error}
               </div>
             )}
@@ -138,10 +140,17 @@ export default function Register() {
               </div>
             </div>
 
-            <div>
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => navigate('/login')}
+                className="text-sm sm:text-base text-indigo-600 hover:text-indigo-500"
+              >
+                Already have an account?
+              </button>
               <button
                 type="submit"
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                className="flex justify-center py-2 px-3 sm:px-4 border border-transparent rounded-md shadow-sm text-sm sm:text-base font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
                 Register
               </button>

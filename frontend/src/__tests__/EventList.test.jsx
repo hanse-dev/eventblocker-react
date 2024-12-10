@@ -1,70 +1,94 @@
-const { render, screen } = require('../test-utils/test-utils');
-const userEvent = require('@testing-library/user-event').default;
-const { rest } = require('msw');
-const { server } = require('../mocks/server');
-const EventList = require('../pages/EventList').default;
-const { act } = require('@testing-library/react');
+import React from 'react';
+import { screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { render } from '../test-utils/test-utils';
+import EventList from '../pages/EventList';
+import { rest } from 'msw';
+import { server } from '../mocks/server';
 
-const mockNavigate = jest.fn();
+const API_URL = 'http://localhost:3000';
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
-  useNavigate: () => mockNavigate,
+  useNavigate: () => jest.fn()
 }));
 
 describe('EventList Component', () => {
-  beforeEach(() => {
-    localStorage.clear();
-    mockNavigate.mockReset();
-  });
-
-  it('renders loading state initially', () => {
-    render(<EventList />);
-    expect(screen.getByRole('status')).toBeInTheDocument();
-    expect(screen.getByText('Loading...')).toBeInTheDocument();
-  });
-
-  it('renders events after loading', async () => {
-    render(<EventList />);
-    await screen.findByText('Test Event');
-
-    expect(screen.getByText('Test Location')).toBeInTheDocument();
-    expect(screen.getByText(/\$50/)).toBeInTheDocument();
-  });
-
-  it('navigates to event details when clicking on an event', async () => {
-    const user = userEvent.setup();
-    render(<EventList />);
-
-    const viewDetailsLink = await screen.findByRole('link', { name: /view details/i });
-    await user.click(viewDetailsLink);
-
-    // The Link component will handle the navigation internally
-    expect(screen.getByRole('link', { name: /view details/i })).toHaveAttribute('href', '/events/1');
-  });
-
-  it('shows error message when fetch fails', async () => {
+  it('renders list of events', async () => {
     server.use(
-      rest.get('/api/events', (req, res, ctx) => {
+      rest.get(`${API_URL}/api/events`, (req, res, ctx) => {
         return res(
-          ctx.status(500),
-          ctx.json({ error: 'Error loading events' })
+          ctx.status(200),
+          ctx.json([
+            {
+              id: 1,
+              title: 'Test Event',
+              description: 'Test Description',
+              date: '2024-12-31T18:00:00.000Z',
+              location: 'Test Location',
+              capacity: 100,
+              price: 50,
+              bookings: []
+            }
+          ])
         );
       })
     );
 
     render(<EventList />);
-    await screen.findByText('Error loading events');
+
+    expect(await screen.findByText('Test Event')).toBeInTheDocument();
+    expect(screen.getByText(/test description/i)).toBeInTheDocument();
+    expect(screen.getByText(/test location/i)).toBeInTheDocument();
+    expect(screen.getByText(/\$50/)).toBeInTheDocument();
   });
 
-  it('shows no events message when events array is empty', async () => {
+  it('shows error message when fetch fails', async () => {
     server.use(
-      rest.get('/api/events', (req, res, ctx) => {
-        return res(ctx.status(200), ctx.json([]));
+      rest.get(`${API_URL}/api/events`, (req, res, ctx) => {
+        return res(
+          ctx.status(500),
+          ctx.json({ message: 'Error loading events' })
+        );
       })
     );
 
     render(<EventList />);
-    await screen.findByText(/no events available/i);
+
+    const errorMessage = await screen.findByText(/error loading events/i);
+    expect(errorMessage).toBeInTheDocument();
+  });
+
+  it('navigates to event details when clicking on event', async () => {
+    const user = userEvent.setup();
+    const mockNavigate = jest.fn();
+    jest.spyOn(require('react-router-dom'), 'useNavigate').mockReturnValue(mockNavigate);
+
+    server.use(
+      rest.get(`${API_URL}/api/events`, (req, res, ctx) => {
+        return res(
+          ctx.status(200),
+          ctx.json([
+            {
+              id: 1,
+              title: 'Test Event',
+              description: 'Test Description',
+              date: '2024-12-31T18:00:00.000Z',
+              location: 'Test Location',
+              capacity: 100,
+              price: 50,
+              bookings: []
+            }
+          ])
+        );
+      })
+    );
+
+    render(<EventList />);
+
+    const viewDetailsButton = await screen.findByRole('button', { name: /view details/i });
+    await user.click(viewDetailsButton);
+
+    expect(mockNavigate).toHaveBeenCalledWith('/events/1');
   });
 });

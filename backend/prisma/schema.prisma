@@ -23,18 +23,19 @@ model User {
 }
 
 model Event {
-  id          Int      @id @default(autoincrement())
-  title       String
-  description String
-  date        DateTime
-  location    String
-  capacity    Int
-  price       Float
-  createdBy   User     @relation("CreatedEvents", fields: [userId], references: [id])
-  userId      Int
-  bookings    Booking[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            Int            @id @default(autoincrement())
+  title         String
+  description   String
+  date          DateTime
+  location      String
+  capacity      Int
+  price         Float
+  createdBy     User           @relation("CreatedEvents", fields: [userId], references: [id])
+  userId        Int
+  bookings      Booking[]
+  registrations Registration[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 }
 
 model Booking {
@@ -48,4 +49,18 @@ model Booking {
   updatedAt DateTime @updatedAt
 
   @@unique([userId, eventId])
+}
+
+model Registration {
+  id        Int      @id @default(autoincrement())
+  event     Event    @relation(fields: [eventId], references: [id])
+  eventId   Int
+  fullName  String
+  email     String
+  phone     String
+  isGuest   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email, eventId])
 }

@@ -1,8 +1,10 @@
 const { rest } = require('msw');
 
+const API_URL = 'http://localhost:3000';
+
 const handlers = [
   // Auth handlers
-  rest.post('/api/auth/login', async (req, res, ctx) => {
+  rest.post(`${API_URL}/api/auth/login`, async (req, res, ctx) => {
     const { email, password } = await req.json();
 
     if (email === 'test@example.com' && password === 'password123') {
@@ -22,12 +24,12 @@ const handlers = [
 
     return res(
       ctx.status(401),
-      ctx.json({ error: 'Invalid credentials' })
+      ctx.json({ message: 'Invalid credentials' })
     );
   }),
 
   // Events handlers
-  rest.get('/api/events', (req, res, ctx) => {
+  rest.get(`${API_URL}/api/events`, (req, res, ctx) => {
     return res(
       ctx.status(200),
       ctx.json([
@@ -38,13 +40,14 @@ const handlers = [
           date: '2024-12-31T18:00:00.000Z',
           location: 'Test Location',
           capacity: 100,
-          price: 50
+          price: 50,
+          bookings: []
         }
       ])
     );
   }),
 
-  rest.get('/api/events/:id', (req, res, ctx) => {
+  rest.get(`${API_URL}/api/events/:id`, (req, res, ctx) => {
     const { id } = req.params;
     
     return res(
@@ -57,18 +60,21 @@ const handlers = [
         location: 'Test Location',
         capacity: 100,
         price: 50,
-        organizer: 'Test Organizer',
         bookings: []
       })
     );
   }),
 
-  // Bookings handlers
-  rest.post('/api/bookings', (req, res, ctx) => {
+  rest.post(`${API_URL}/api/bookings`, async (req, res, ctx) => {
+    const { eventId } = await req.json();
+    
     return res(
-      ctx.status(201),
+      ctx.status(200),
       ctx.json({
-        message: 'Booking successful'
+        id: 1,
+        userId: 1,
+        eventId: parseInt(eventId),
+        status: 'CONFIRMED'
       })
     );
   })
